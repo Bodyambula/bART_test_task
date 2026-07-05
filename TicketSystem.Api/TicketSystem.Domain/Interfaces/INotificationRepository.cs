@@ -1,7 +1,3 @@
-// <copyright file="INotificationRepository.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 using TicketSystem.Domain.Models;
 
 namespace TicketSystem.Domain.Interfaces;

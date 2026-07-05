@@ -1,7 +1,3 @@
-// <copyright file="Ticket.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 using TicketSystem.Domain.Enums;
 
 namespace TicketSystem.Domain.Models;

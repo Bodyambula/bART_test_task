@@ -1,7 +1,3 @@
-// <copyright file="TicketTests.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using TicketSystem.Api.Controllers;

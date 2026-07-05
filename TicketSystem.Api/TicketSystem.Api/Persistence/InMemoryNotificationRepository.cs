@@ -1,7 +1,3 @@
-// <copyright file="InMemoryNotificationRepository.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 using System.Collections.Concurrent;
 using TicketSystem.Domain.Interfaces;
 using TicketSystem.Domain.Models;
