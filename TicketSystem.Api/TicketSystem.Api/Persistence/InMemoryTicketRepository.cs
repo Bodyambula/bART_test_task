@@ -8,14 +8,12 @@ public class InMemoryTicketRepository : ITicketRepository
 {
     private readonly ConcurrentDictionary<Guid, Ticket> tickets = new ();
 
-    /// <inheritdoc/>
     public Task AddAsync(Ticket ticket)
     {
         this.tickets[ticket.Id] = ticket;
         return Task.CompletedTask;
     }
 
-    /// <inheritdoc/>
     public Task<Ticket?> GetByIdAsync(Guid id)
     {
         this.tickets.TryGetValue(id, out var ticket);

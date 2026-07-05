@@ -6,10 +6,8 @@ namespace TicketSystem.Api.Services;
 
 public class PushNotificationSender : INotificationSender
 {
-    /// <inheritdoc/>
     public NotificationChannel Channel => NotificationChannel.Push;
 
-    /// <inheritdoc/>
     public Task SendAsync(Ticket ticket, Notification notification)
     {
         // Simulated validation rule for Push: Description if provided must not be empty or whitespace

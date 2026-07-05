@@ -6,10 +6,8 @@ namespace TicketSystem.Api.Services;
 
 public class EmailNotificationSender : INotificationSender
 {
-    /// <inheritdoc/>
     public NotificationChannel Channel => NotificationChannel.Email;
 
-    /// <inheritdoc/>
     public Task SendAsync(Ticket ticket, Notification notification)
     {
         // Simulated validation rule for Email
