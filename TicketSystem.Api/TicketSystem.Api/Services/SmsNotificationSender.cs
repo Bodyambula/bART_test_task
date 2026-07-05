@@ -1,3 +1,7 @@
+// <copyright file="SmsNotificationSender.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
 using TicketSystem.Domain.Enums;
 using TicketSystem.Domain.Interfaces;
 using TicketSystem.Domain.Models;
@@ -6,8 +10,10 @@ namespace TicketSystem.Api.Services;
 
 public class SmsNotificationSender : INotificationSender
 {
+    /// <inheritdoc/>
     public NotificationChannel Channel => NotificationChannel.Sms;
 
+    /// <inheritdoc/>
     public Task SendAsync(Ticket ticket, Notification notification)
     {
         // Simulated validation rule for SMS: SMS content (title) cannot exceed 160 characters

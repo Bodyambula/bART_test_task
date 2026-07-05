@@ -1,3 +1,7 @@
+// <copyright file="TicketsController.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using TicketSystem.Api.Services;
@@ -11,26 +15,26 @@ namespace TicketSystem.Api.Controllers;
 [Route("api/[controller]")]
 public class TicketsController : ControllerBase
 {
-    private readonly ITicketRepository _ticketRepository;
-    private readonly INotificationRepository _notificationRepository;
-    private readonly NotificationService _notificationService;
+    private readonly ITicketRepository ticketRepository;
+    private readonly INotificationRepository notificationRepository;
+    private readonly NotificationService notificationService;
 
     public TicketsController(
         ITicketRepository ticketRepository,
         INotificationRepository notificationRepository,
         NotificationService notificationService)
     {
-        _ticketRepository = ticketRepository;
-        _notificationRepository = notificationRepository;
-        _notificationService = notificationService;
+        this.ticketRepository = ticketRepository;
+        this.notificationRepository = notificationRepository;
+        this.notificationService = notificationService;
     }
 
     [HttpPost]
     public async Task<IActionResult> CreateTicket([FromBody] CreateTicketRequest request)
     {
-        if (!ModelState.IsValid)
+        if (!this.ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return this.BadRequest(this.ModelState);
         }
 
         var ticket = new Ticket
@@ -39,48 +43,48 @@ public class TicketsController : ControllerBase
             Title = request.Title,
             Description = request.Description,
             Priority = request.Priority,
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow,
         };
 
-        await _ticketRepository.AddAsync(ticket);
-        await _notificationService.CreatePendingNotificationsForTicketAsync(ticket.Id);
+        await this.ticketRepository.AddAsync(ticket);
+        await this.notificationService.CreatePendingNotificationsForTicketAsync(ticket.Id);
 
-        var response = await GetTicketDetailsResponseAsync(ticket);
-        return CreatedAtAction(nameof(GetTicket), new { id = ticket.Id }, response);
+        var response = await this.GetTicketDetailsResponseAsync(ticket);
+        return this.CreatedAtAction(nameof(this.GetTicket), new { id = ticket.Id }, response);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetTicket(Guid id)
     {
-        var ticket = await _ticketRepository.GetByIdAsync(id);
+        var ticket = await this.ticketRepository.GetByIdAsync(id);
         if (ticket == null)
         {
-            return NotFound(new { Message = $"Ticket with ID {id} not found." });
+            return this.NotFound(new { Message = $"Ticket with ID {id} not found." });
         }
 
-        var response = await GetTicketDetailsResponseAsync(ticket);
-        return Ok(response);
+        var response = await this.GetTicketDetailsResponseAsync(ticket);
+        return this.Ok(response);
     }
 
     [HttpPost("{id}/notify")]
     public async Task<IActionResult> Notify(Guid id)
     {
-        var ticket = await _ticketRepository.GetByIdAsync(id);
+        var ticket = await this.ticketRepository.GetByIdAsync(id);
         if (ticket == null)
         {
-            return NotFound(new { Message = $"Ticket with ID {id} not found." });
+            return this.NotFound(new { Message = $"Ticket with ID {id} not found." });
         }
 
-        await _notificationService.SendPendingOrFailedNotificationsAsync(id);
+        await this.notificationService.SendPendingOrFailedNotificationsAsync(id);
 
-        var response = await GetTicketDetailsResponseAsync(ticket);
-        return Ok(response);
+        var response = await this.GetTicketDetailsResponseAsync(ticket);
+        return this.Ok(response);
     }
 
     private async Task<TicketDetailsResponse> GetTicketDetailsResponseAsync(Ticket ticket)
     {
-        var notifications = await _notificationRepository.GetByTicketIdAsync(ticket.Id);
-        
+        var notifications = await this.notificationRepository.GetByTicketIdAsync(ticket.Id);
+
         return new TicketDetailsResponse
         {
             Id = ticket.Id,
@@ -96,7 +100,7 @@ public class TicketsController : ControllerBase
                 Attempts = n.Attempts,
                 LastError = n.LastError,
                 CreatedAt = n.CreatedAt
-            }).ToList()
+            }).ToList(),
         };
     }
 }
@@ -116,19 +120,29 @@ public class CreateTicketRequest
 public class TicketDetailsResponse
 {
     public Guid Id { get; set; }
+
     public string Title { get; set; } = string.Empty;
+
     public string? Description { get; set; }
+
     public string Priority { get; set; } = string.Empty;
+
     public DateTimeOffset CreatedAt { get; set; }
-    public List<NotificationResponse> Notifications { get; set; } = new();
+
+    public List<NotificationResponse> Notifications { get; set; } = new ();
 }
 
 public class NotificationResponse
 {
     public Guid Id { get; set; }
+
     public string Channel { get; set; } = string.Empty;
+
     public string Status { get; set; } = string.Empty;
+
     public int Attempts { get; set; }
+
     public string? LastError { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 }

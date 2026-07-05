@@ -1,3 +1,7 @@
+// <copyright file="EmailNotificationSender.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
 using TicketSystem.Domain.Enums;
 using TicketSystem.Domain.Interfaces;
 using TicketSystem.Domain.Models;
@@ -6,8 +10,10 @@ namespace TicketSystem.Api.Services;
 
 public class EmailNotificationSender : INotificationSender
 {
+    /// <inheritdoc/>
     public NotificationChannel Channel => NotificationChannel.Email;
 
+    /// <inheritdoc/>
     public Task SendAsync(Ticket ticket, Notification notification)
     {
         // Simulated validation rule for Email
