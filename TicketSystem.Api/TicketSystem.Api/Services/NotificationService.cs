@@ -1,3 +1,4 @@
+using TicketSystem.Domain.Common;
 using TicketSystem.Domain.Enums;
 using TicketSystem.Domain.Interfaces;
 using TicketSystem.Domain.Models;
@@ -20,7 +21,7 @@ public class NotificationService
         this.senders = senders;
     }
 
-    public async Task CreatePendingNotificationsForTicketAsync(Guid ticketId)
+    public async Task CreatePendingNotificationsForTicketAsync(TicketId ticketId)
     {
         var ticket = await this.ticketRepository.GetByIdAsync(ticketId);
         if (ticket == null)
@@ -32,21 +33,19 @@ public class NotificationService
         var channels = Enum.GetValues<NotificationChannel>();
         foreach (var channel in channels)
         {
-            var notification = new Notification
-            {
-                Id = Guid.NewGuid(),
-                TicketId = ticketId,
-                Channel = channel,
-                Status = NotificationStatus.Pending,
-                Attempts = 0,
-                LastError = null,
-                CreatedAt = DateTimeOffset.UtcNow,
-            };
+            var notification = new Notification(
+                NotificationId.New(),
+                ticketId,
+                channel,
+                NotificationStatus.Pending,
+                0,
+                null,
+                DateTimeOffset.UtcNow);
             await this.notificationRepository.AddAsync(notification);
         }
     }
 
-    public async Task SendPendingOrFailedNotificationsAsync(Guid ticketId)
+    public async Task SendPendingOrFailedNotificationsAsync(TicketId ticketId)
     {
         var ticket = await this.ticketRepository.GetByIdAsync(ticketId);
         if (ticket == null)
@@ -59,23 +58,19 @@ public class NotificationService
 
         foreach (var notification in notifications)
         {
-            // Only process Pending or Failed notifications with Attempts < 3
-            if ((notification.Status == NotificationStatus.Pending || notification.Status == NotificationStatus.Failed)
-                && notification.Attempts < 3)
+            if (notification.CanAttempt)
             {
                 if (sendersMap.TryGetValue(notification.Channel, out var sender))
                 {
-                    notification.Attempts++;
+                    notification.RecordAttempt();
                     try
                     {
                         await sender.SendAsync(ticket, notification);
-                        notification.Status = NotificationStatus.Sent;
-                        notification.LastError = null;
+                        notification.MarkAsSent();
                     }
                     catch (Exception ex)
                     {
-                        notification.Status = NotificationStatus.Failed;
-                        notification.LastError = ex.Message;
+                        notification.MarkAsFailed(ex.Message);
                     }
 
                     await this.notificationRepository.UpdateAsync(notification);

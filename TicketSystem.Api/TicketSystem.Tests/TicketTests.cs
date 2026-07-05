@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using TicketSystem.Api.Controllers;
 using TicketSystem.Api.Persistence;
 using TicketSystem.Api.Services;
+using TicketSystem.Domain.Common;
 using TicketSystem.Domain.Enums;
 using TicketSystem.Domain.Interfaces;
 using TicketSystem.Domain.Models;
@@ -34,12 +35,7 @@ public class TicketTests
         var notificationService = new NotificationService(this.notificationRepository, this.ticketRepository, senders);
         var controller = new TicketsController(this.ticketRepository, this.notificationRepository, notificationService);
 
-        var request = new CreateTicketRequest
-        {
-            Title = "Valid Ticket Title",
-            Description = "A valid test description",
-            Priority = Priority.High,
-        };
+        var request = new CreateTicketRequest("Valid Ticket Title", "A valid test description", Priority.High);
 
         // Act
         var result = await controller.CreateTicket(request);
@@ -67,14 +63,12 @@ public class TicketTests
     public async Task Notify_SendsAllAndUpdatesStatusesCorrectly()
     {
         // Arrange
-        var ticket = new Ticket
-        {
-            Id = Guid.NewGuid(),
-            Title = "Test Ticket",
-            Description = "Test Description",
-            Priority = Priority.Medium,
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
+        var ticket = new Ticket(
+            TicketId.New(),
+            "Test Ticket",
+            "Test Description",
+            Priority.Medium,
+            DateTimeOffset.UtcNow);
         await this.ticketRepository.AddAsync(ticket);
 
         var senders = new List<INotificationSender>
@@ -105,13 +99,12 @@ public class TicketTests
     public async Task Retry_IncrementsAttemptsAndStopsAfterThree()
     {
         // Arrange
-        var ticket = new Ticket
-        {
-            Id = Guid.NewGuid(),
-            Title = "Fail Ticket",
-            Priority = Priority.Low,
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
+        var ticket = new Ticket(
+            TicketId.New(),
+            "Fail Ticket",
+            "Test Description",
+            Priority.Low,
+            DateTimeOffset.UtcNow);
         await this.ticketRepository.AddAsync(ticket);
 
         // Create mock senders that throw exception to trigger retry policy failure
@@ -121,15 +114,14 @@ public class TicketTests
         var notificationService = new NotificationService(this.notificationRepository, this.ticketRepository, senders);
 
         // Add 1 Pending notification for Email
-        var notification = new Notification
-        {
-            Id = Guid.NewGuid(),
-            TicketId = ticket.Id,
-            Channel = NotificationChannel.Email,
-            Status = NotificationStatus.Pending,
-            Attempts = 0,
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
+        var notification = new Notification(
+            NotificationId.New(),
+            ticket.Id,
+            NotificationChannel.Email,
+            NotificationStatus.Pending,
+            0,
+            null,
+            DateTimeOffset.UtcNow);
         await this.notificationRepository.AddAsync(notification);
 
         // Act & Assert: Call Send 4 times
@@ -162,13 +154,12 @@ public class TicketTests
     public async Task Notify_IsIdempotent()
     {
         // Arrange
-        var ticket = new Ticket
-        {
-            Id = Guid.NewGuid(),
-            Title = "Idempotent Ticket",
-            Priority = Priority.Medium,
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
+        var ticket = new Ticket(
+            TicketId.New(),
+            "Idempotent Ticket",
+            "Test Description",
+            Priority.Medium,
+            DateTimeOffset.UtcNow);
         await this.ticketRepository.AddAsync(ticket);
 
         // Implement a spy sender to count how many times it was called
@@ -177,15 +168,14 @@ public class TicketTests
         var notificationService = new NotificationService(this.notificationRepository, this.ticketRepository, senders);
 
         // Create 1 Pending email notification
-        var notification = new Notification
-        {
-            Id = Guid.NewGuid(),
-            TicketId = ticket.Id,
-            Channel = NotificationChannel.Email,
-            Status = NotificationStatus.Pending,
-            Attempts = 0,
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
+        var notification = new Notification(
+            NotificationId.New(),
+            ticket.Id,
+            NotificationChannel.Email,
+            NotificationStatus.Pending,
+            0,
+            null,
+            DateTimeOffset.UtcNow);
         await this.notificationRepository.AddAsync(notification);
 
         // Act
@@ -210,28 +200,26 @@ public class TicketTests
     public async Task SendFailure_StoresErrorMessageInLastError()
     {
         // Arrange
-        var ticket = new Ticket
-        {
-            Id = Guid.NewGuid(),
-            Title = "Error Ticket",
-            Priority = Priority.Medium,
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
+        var ticket = new Ticket(
+            TicketId.New(),
+            "Error Ticket",
+            "Test Description",
+            Priority.Medium,
+            DateTimeOffset.UtcNow);
         await this.ticketRepository.AddAsync(ticket);
 
         var errorMsg = "SMS provider API is down.";
         var failingSender = new FailingNotificationSender(NotificationChannel.Sms, errorMsg);
         var notificationService = new NotificationService(this.notificationRepository, this.ticketRepository, new[] { failingSender });
 
-        var notification = new Notification
-        {
-            Id = Guid.NewGuid(),
-            TicketId = ticket.Id,
-            Channel = NotificationChannel.Sms,
-            Status = NotificationStatus.Pending,
-            Attempts = 0,
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
+        var notification = new Notification(
+            NotificationId.New(),
+            ticket.Id,
+            NotificationChannel.Sms,
+            NotificationStatus.Pending,
+            0,
+            null,
+            DateTimeOffset.UtcNow);
         await this.notificationRepository.AddAsync(notification);
 
         // Act
@@ -249,16 +237,11 @@ public class TicketTests
     [InlineData("Valid", true)] // Valid: exactly 5 characters
     [InlineData("Super Valid Title", true)] // Valid: more than 5 characters
     [InlineData("", false)] // Invalid: empty string
-    [InlineData("    ", false)] // Invalid: whitespace (will be caught by MinLength as it's trimmed or evaluated as 4 chars if not trimmed)
+    [InlineData("    ", false)] // Invalid: whitespace
     public void TicketTitleValidation_EnforcesMinLength(string title, bool expectedIsValid)
     {
         // Arrange
-        var request = new CreateTicketRequest
-        {
-            Title = title,
-            Description = "Description",
-            Priority = Priority.Medium,
-        };
+        var request = new CreateTicketRequest(title, "Description", Priority.Medium);
 
         var context = new ValidationContext(request, serviceProvider: null, items: null);
         var results = new List<ValidationResult>();
@@ -272,6 +255,20 @@ public class TicketTests
         {
             Assert.Contains(results, r => r.MemberNames.Contains("Title"));
         }
+    }
+
+    [Theory]
+    [InlineData("Ab")]
+    [InlineData("")]
+    public void TicketConstructor_ThrowsArgumentException_WhenTitleIsInvalid(string invalidTitle)
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => new Ticket(
+            TicketId.New(),
+            invalidTitle,
+            "Description",
+            Priority.Medium,
+            DateTimeOffset.UtcNow));
     }
 
     // Helper mock/spy classes for testing

@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using TicketSystem.Api.Services;
+using TicketSystem.Domain.Common;
 using TicketSystem.Domain.Enums;
 using TicketSystem.Domain.Interfaces;
 using TicketSystem.Domain.Models;
@@ -33,24 +34,22 @@ public class TicketsController : ControllerBase
             return this.BadRequest(this.ModelState);
         }
 
-        var ticket = new Ticket
-        {
-            Id = Guid.NewGuid(),
-            Title = request.Title,
-            Description = request.Description,
-            Priority = request.Priority,
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
+        var ticket = new Ticket(
+            TicketId.New(),
+            request.Title,
+            request.Description,
+            request.Priority,
+            DateTimeOffset.UtcNow);
 
         await this.ticketRepository.AddAsync(ticket);
         await this.notificationService.CreatePendingNotificationsForTicketAsync(ticket.Id);
 
         var response = await this.GetTicketDetailsResponseAsync(ticket);
-        return this.CreatedAtAction(nameof(this.GetTicket), new { id = ticket.Id }, response);
+        return this.CreatedAtAction(nameof(this.GetTicket), new { id = ticket.Id.Value }, response);
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetTicket(Guid id)
+    public async Task<IActionResult> GetTicket(TicketId id)
     {
         var ticket = await this.ticketRepository.GetByIdAsync(id);
         if (ticket == null)
@@ -63,7 +62,7 @@ public class TicketsController : ControllerBase
     }
 
     [HttpPost("{id}/notify")]
-    public async Task<IActionResult> Notify(Guid id)
+    public async Task<IActionResult> Notify(TicketId id)
     {
         var ticket = await this.ticketRepository.GetByIdAsync(id);
         if (ticket == null)
@@ -81,64 +80,41 @@ public class TicketsController : ControllerBase
     {
         var notifications = await this.notificationRepository.GetByTicketIdAsync(ticket.Id);
 
-        return new TicketDetailsResponse
-        {
-            Id = ticket.Id,
-            Title = ticket.Title,
-            Description = ticket.Description,
-            Priority = ticket.Priority.ToString(),
-            CreatedAt = ticket.CreatedAt,
-            Notifications = notifications.Select(n => new NotificationResponse
-            {
-                Id = n.Id,
-                Channel = n.Channel.ToString(),
-                Status = n.Status.ToString(),
-                Attempts = n.Attempts,
-                LastError = n.LastError,
-                CreatedAt = n.CreatedAt
-            }).ToList(),
-        };
+        return new TicketDetailsResponse(
+            ticket.Id,
+            ticket.Title,
+            ticket.Description,
+            ticket.Priority.ToString(),
+            ticket.CreatedAt,
+            notifications.Select(n => new NotificationResponse(
+                n.Id,
+                n.Channel.ToString(),
+                n.Status.ToString(),
+                n.Attempts,
+                n.LastError,
+                n.CreatedAt)).ToList());
     }
 }
 
-public class CreateTicketRequest
-{
-    [Required]
-    [MinLength(5, ErrorMessage = "Title must be at least 5 characters long.")]
-    public string Title { get; set; } = string.Empty;
+public record CreateTicketRequest(
+    [property: Required]
+    [property: MinLength(5, ErrorMessage = "Title must be at least 5 characters long.")]
+    string Title,
+    string? Description,
+    Priority Priority);
 
-    public string? Description { get; set; }
+public record TicketDetailsResponse(
+    TicketId Id,
+    string Title,
+    string? Description,
+    string Priority,
+    DateTimeOffset CreatedAt,
+    List<NotificationResponse> Notifications);
 
-    [Required]
-    public Priority Priority { get; set; }
-}
-
-public class TicketDetailsResponse
-{
-    public Guid Id { get; set; }
-
-    public string Title { get; set; } = string.Empty;
-
-    public string? Description { get; set; }
-
-    public string Priority { get; set; } = string.Empty;
-
-    public DateTimeOffset CreatedAt { get; set; }
-
-    public List<NotificationResponse> Notifications { get; set; } = new ();
-}
-
-public class NotificationResponse
-{
-    public Guid Id { get; set; }
-
-    public string Channel { get; set; } = string.Empty;
-
-    public string Status { get; set; } = string.Empty;
-
-    public int Attempts { get; set; }
-
-    public string? LastError { get; set; }
-
-    public DateTimeOffset CreatedAt { get; set; }
-}
+public record NotificationResponse(
+    NotificationId Id,
+    string Channel,
+    string Status,
+    int Attempts,
+    string? LastError,
+    DateTimeOffset CreatedAt);

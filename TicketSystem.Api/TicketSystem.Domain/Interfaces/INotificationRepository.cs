@@ -1,3 +1,4 @@
+using TicketSystem.Domain.Common;
 using TicketSystem.Domain.Models;
 
 namespace TicketSystem.Domain.Interfaces;
@@ -8,5 +9,5 @@ public interface INotificationRepository
 
     Task UpdateAsync(Notification notification);
 
-    Task<List<Notification>> GetByTicketIdAsync(Guid ticketId);
+    Task<List<Notification>> GetByTicketIdAsync(TicketId ticketId);
 }

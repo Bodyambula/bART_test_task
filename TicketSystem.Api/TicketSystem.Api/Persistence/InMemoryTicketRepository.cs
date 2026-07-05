@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using TicketSystem.Domain.Common;
 using TicketSystem.Domain.Interfaces;
 using TicketSystem.Domain.Models;
 
@@ -6,7 +7,7 @@ namespace TicketSystem.Api.Persistence;
 
 public class InMemoryTicketRepository : ITicketRepository
 {
-    private readonly ConcurrentDictionary<Guid, Ticket> tickets = new ();
+    private readonly ConcurrentDictionary<TicketId, Ticket> tickets = new ();
 
     public Task AddAsync(Ticket ticket)
     {
@@ -14,7 +15,7 @@ public class InMemoryTicketRepository : ITicketRepository
         return Task.CompletedTask;
     }
 
-    public Task<Ticket?> GetByIdAsync(Guid id)
+    public Task<Ticket?> GetByIdAsync(TicketId id)
     {
         this.tickets.TryGetValue(id, out var ticket);
         return Task.FromResult(ticket);
