@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using TicketSystem.Api.Controllers;
 using TicketSystem.Api.Persistence;
 using TicketSystem.Api.Services;
@@ -11,15 +13,33 @@ using Xunit;
 
 namespace TicketSystem.Tests;
 
-public class TicketTests
+public class TicketTests : IDisposable
 {
-    private readonly InMemoryTicketRepository ticketRepository;
-    private readonly InMemoryNotificationRepository notificationRepository;
+    private readonly SqliteConnection connection;
+    private readonly TicketDbContext dbContext;
+    private readonly SqliteTicketRepository ticketRepository;
+    private readonly SqliteNotificationRepository notificationRepository;
 
     public TicketTests()
     {
-        this.ticketRepository = new InMemoryTicketRepository();
-        this.notificationRepository = new InMemoryNotificationRepository();
+        this.connection = new SqliteConnection("Filename=:memory:");
+        this.connection.Open();
+
+        var options = new DbContextOptionsBuilder<TicketDbContext>()
+            .UseSqlite(this.connection)
+            .Options;
+
+        this.dbContext = new TicketDbContext(options);
+        this.dbContext.Database.EnsureCreated();
+
+        this.ticketRepository = new SqliteTicketRepository(this.dbContext);
+        this.notificationRepository = new SqliteNotificationRepository(this.dbContext);
+    }
+
+    public void Dispose()
+    {
+        this.dbContext.Dispose();
+        this.connection.Dispose();
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 using TicketSystem.Api.Persistence;
 using TicketSystem.Api.Services;
 using TicketSystem.Domain.Interfaces;
@@ -12,9 +13,13 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-// Register Repositories as Singletons for In-Memory storage
-builder.Services.AddSingleton<ITicketRepository, InMemoryTicketRepository>();
-builder.Services.AddSingleton<INotificationRepository, InMemoryNotificationRepository>();
+// Register DbContext for local SQLite database
+builder.Services.AddDbContext<TicketDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Register Repositories using SQLite storage
+builder.Services.AddScoped<ITicketRepository, SqliteTicketRepository>();
+builder.Services.AddScoped<INotificationRepository, SqliteNotificationRepository>();
 
 // Register Senders
 builder.Services.AddTransient<INotificationSender, EmailNotificationSender>();
@@ -29,6 +34,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Ensure the SQLite database is created at startup
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<TicketDbContext>();
+    context.Database.EnsureCreated();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

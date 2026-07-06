@@ -34,5 +34,9 @@ bld/
 publish/
 
 # Rider
-.idea/
 *.sln.iml
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
