@@ -10,14 +10,13 @@ public class PushNotificationSender : INotificationSender
 
     public Task SendAsync(Ticket ticket, Notification notification)
     {
-        // Simulated validation rule for Push: Description if provided must not be empty or whitespace
+        // Simulate channel-specific validation
         if (ticket.Description != null && string.IsNullOrWhiteSpace(ticket.Description))
         {
             throw new ArgumentException("Push sending failed: Description is whitespace.");
         }
 
-        // In a real application, we would use Firebase Cloud Messaging (FCM) or Apple Push Notification service (APNs).
-        // For simulation, it succeeds.
+        // Simulate successful delivery
         return Task.CompletedTask;
     }
 }

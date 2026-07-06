@@ -96,12 +96,23 @@ public class TicketsController : ControllerBase
     }
 }
 
-public record CreateTicketRequest(
-    [property: Required]
-    [property: MinLength(5, ErrorMessage = "Title must be at least 5 characters long.")]
-    string Title,
-    string? Description,
-    Priority Priority);
+public record CreateTicketRequest
+{
+    [Required]
+    [MinLength(5, ErrorMessage = "Title must be at least 5 characters long.")]
+    public string Title { get; init; }
+
+    public string? Description { get; init; }
+
+    public Priority Priority { get; init; }
+
+    public CreateTicketRequest(string title, string? description, Priority priority)
+    {
+        Title = title;
+        Description = description;
+        Priority = priority;
+    }
+}
 
 public record TicketDetailsResponse(
     TicketId Id,

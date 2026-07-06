@@ -13,29 +13,40 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-// Register DbContext for local SQLite database
 builder.Services.AddDbContext<TicketDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register Repositories using SQLite storage
+// Repositories
 builder.Services.AddScoped<ITicketRepository, SqliteTicketRepository>();
 builder.Services.AddScoped<INotificationRepository, SqliteNotificationRepository>();
 
-// Register Senders
+// Notification senders
 builder.Services.AddTransient<INotificationSender, EmailNotificationSender>();
 builder.Services.AddTransient<INotificationSender, SmsNotificationSender>();
 builder.Services.AddTransient<INotificationSender, PushNotificationSender>();
 
-// Register Services
+// Application services
 builder.Services.AddScoped<NotificationService>();
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    // Map strongly-typed IDs to UUID strings in Swagger
+    options.MapType<TicketSystem.Domain.Common.TicketId>(() => new Microsoft.OpenApi.Models.OpenApiSchema
+    {
+        Type = "string",
+        Format = "uuid"
+    });
+    options.MapType<TicketSystem.Domain.Common.NotificationId>(() => new Microsoft.OpenApi.Models.OpenApiSchema
+    {
+        Type = "string",
+        Format = "uuid"
+    });
+});
 
 var app = builder.Build();
 
-// Ensure the SQLite database is created at startup
+// Ensure the database is created at startup
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<TicketDbContext>();
